@@ -1,0 +1,61 @@
+name: Create BC Container
+description: Create or start a Business Central container.
+
+inputs:
+  CONTAINERNAME:
+    description: The name of the container.
+    required: true
+  BC_USERNAME:
+    description: The BC username.
+    required: true
+  BC_PASSWORD:
+    description: The BC password.
+    required: true
+  LICENSE_FILE:
+    description: The license file path.
+    required: true
+  ARTIFACTNAME:
+    description: The name of the container.
+    required: true  
+  RepositoryDirectory:
+    description: The name of the path.
+    required: true 
+
+runs:
+  using: "composite"
+  steps:
+    - name: Create or Start BC Container
+      shell: pwsh
+      env:
+        BC_USERNAME: ${{ inputs.BC_USERNAME }}
+        BC_PASSWORD: ${{ inputs.BC_PASSWORD }}
+        LICENSE_FILE: ${{ inputs.LICENSE_FILE }}
+        CONTAINERNAME: ${{ inputs.CONTAINERNAME }}
+        ARTIFACTNAME: ${{ inputs.ARTIFACTNAME }}
+        RepositoryDirectory: ${{ inputs.RepositoryDirectory }}
+      run: |
+        $username = $env:BC_USERNAME
+        $password = ConvertTo-SecureString $env:BC_PASSWORD -AsPlainText -Force
+        $credential = New-Object System.Management.Automation.PSCredential ($username, $password)
+        $licenseFile = "${{ inputs.LICENSE_FILE }}"
+        $containerName = "${{ inputs.CONTAINERNAME }}"
+        $RepositoryDirectory = $env:RepositoryDirectory
+
+        $RepositoryDirectory = Get-Location
+        Write-Host "Current Working Directory: $RepositoryDirectory"
+
+        try {
+            Get-BcContainerId -containerName $containerName
+            Start-BcContainer -containerName $containerName
+        }
+        catch {
+            $artifactUrl = Get-BCArtifactUrl -country w1 -select Latest -storageAccount bcartifacts -type Sandbox
+
+            $AdditionalParameters = @()
+            $AdditionalParameters += '--volume "{0}:{1}"' -f $RepositoryDirectory, 'c:\sources'
+
+            Write-Host "Container not found. Creating a new container..."
+            $artifactUrl = Get-BCArtifactUrl -country w1 -select Latest -storageAccount bcartifacts -type Sandbox
+            New-BcContainer -accept_eula -artifactUrl $artifactUrl -containerName $containerName -auth NavUserPassword `
+                -credential $credential -isolation process -memoryLimit 8GB -accept_outdated -useBestContainerOS $true `
+                -additionalParameters $AdditionalParameters
