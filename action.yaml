@@ -61,3 +61,6 @@ runs:
                 -additionalParameters $AdditionalParameters
         
         }
+        Write-Host "📦 Importing Test Toolkit to container..."
+        Import-TestToolkitToBcContainer -containerName $containerName -includeTestLibrariesOnly -force
+        Write-Host "✅ Test Toolkit imported successfully."
