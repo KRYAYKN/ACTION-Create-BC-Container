@@ -62,5 +62,5 @@ runs:
         
         }
         Write-Host "📦 Importing Test Toolkit to container..."
-        Import-TestToolkitToBcContainer -containerName $containerName -includeTestLibrariesOnly -force
+        Import-TestToolkitToBcContainer -containerName $containerName -includeTestLibrariesOnly 
         Write-Host "✅ Test Toolkit imported successfully."
