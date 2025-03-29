@@ -58,7 +58,7 @@ runs:
             $artifactUrl = Get-BCArtifactUrl -country w1 -select Latest -storageAccount bcartifacts -type Sandbox
             New-BcContainer -accept_eula -artifactUrl $artifactUrl -containerName $containerName -auth NavUserPassword `
                 -credential $credential -isolation process -memoryLimit 8GB -accept_outdated -useBestContainerOS $true `
-                -additionalParameters $AdditionalParameters
+                -additionalParameters $AdditionalParameters -includeTestToolkit
         
         }
         Write-Host "📦 Importing Test Toolkit to container..."
