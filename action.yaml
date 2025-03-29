@@ -41,8 +41,15 @@ runs:
         $containerName = "${{ inputs.CONTAINERNAME }}"
         $RepositoryDirectory = $env:RepositoryDirectory
 
+        # Current Directory
         $RepositoryDirectory = Get-Location
         Write-Host "Current Working Directory: $RepositoryDirectory"
+
+        # Cleanup existing container if exists
+        if (docker ps -a --filter "name=$containerName" | Select-String $containerName) {
+          Write-Host "⚠️ Container exists. Removing old container..."
+          docker rm -f $containerName
+        }
 
         try {
             Get-BcContainerId -containerName $containerName
@@ -59,8 +66,17 @@ runs:
             New-BcContainer -accept_eula -artifactUrl $artifactUrl -containerName $containerName -auth NavUserPassword `
                 -credential $credential -isolation process -memoryLimit 8GB -accept_outdated -useBestContainerOS $true `
                 -additionalParameters $AdditionalParameters -includeTestToolkit
-        
         }
+
         Write-Host "📦 Importing Test Toolkit to container..."
         Import-TestToolkitToBcContainer -containerName $containerName -includeTestLibrariesOnly 
         Write-Host "✅ Test Toolkit imported successfully."
+
+    - name: Cleanup on Failure
+      if: failure()
+      shell: pwsh
+      run: |
+        Write-Host "🧹 Cleaning up on failure..."
+        docker rm -f ${{ inputs.CONTAINERNAME }}
+        docker system prune -af
+        Write-Host "✅ Cleanup completed."
