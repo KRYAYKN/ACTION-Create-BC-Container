@@ -45,6 +45,12 @@ runs:
         $RepositoryDirectory = Get-Location
         Write-Host "Current Working Directory: $RepositoryDirectory"
 
+        # License Check
+        if (-not (Test-Path $licenseFile)) {
+          Write-Host "::error:: License file not found at $licenseFile"
+          exit 1
+        }
+
         # Cleanup existing container if exists
         if (docker ps -a --filter "name=$containerName" | Select-String $containerName) {
           Write-Host "⚠️ Container exists. Removing old container..."
@@ -64,19 +70,51 @@ runs:
             Write-Host "Container not found. Creating a new container..."
             $artifactUrl = Get-BCArtifactUrl -country w1 -select Latest -storageAccount bcartifacts -type Sandbox
             New-BcContainer -accept_eula -artifactUrl $artifactUrl -containerName $containerName -auth NavUserPassword `
-                -credential $credential -isolation process -memoryLimit 8GB -accept_outdated -useBestContainerOS $true `
+                -credential $credential -isolation process -memoryLimit 16GB -accept_outdated -useBestContainerOS $true `
                 -additionalParameters $AdditionalParameters -includeTestToolkit
         }
 
-        Write-Host "📦 Importing Test Toolkit to container..."
-        Import-TestToolkitToBcContainer -containerName $containerName -includeTestLibrariesOnly 
-        Write-Host "✅ Test Toolkit imported successfully."
+        # Ensure SQL Server is Running
+        Write-Host "⏳ Waiting for SQL Server to start..."
+        Start-Sleep -Seconds 10
+        if ((Get-Service -Name 'MSSQL$SQLEXPRESS').Status -ne 'Running') {
+          Write-Host "::error:: SQL Server did not start in time. Exiting."
+          exit 1
+        }
+        Write-Host "✅ SQL Server is running."
+
+        # Import Test Toolkit with Retry
+        $retryCount = 3
+        $attempt = 0
+        $success = $false
+
+        while (-not $success -and $attempt -lt $retryCount) {
+            try {
+                Write-Host "🚀 Attempting to install Test Toolkit (Attempt: $($attempt + 1)/$retryCount)..."
+                Import-TestToolkitToBcContainer -containerName $containerName -includeTestLibrariesOnly
+                Write-Host "✅ Test Toolkit installed successfully."
+                $success = $true
+            }
+            catch {
+                Write-Host "::error:: Failed to install Test Toolkit. Error: $_"
+                $attempt++
+                if ($attempt -lt $retryCount) {
+                    Write-Host "⏳ Retrying in 10 seconds..."
+                    Start-Sleep -Seconds 10
+                } else {
+                    Write-Host "❌ All attempts failed. Exiting."
+                    exit 1
+                }
+            }
+        }
 
     - name: Cleanup on Failure
       if: failure()
       shell: pwsh
       run: |
         Write-Host "🧹 Cleaning up on failure..."
-        docker rm -f ${{ inputs.CONTAINERNAME }}
+        if (docker ps -a --filter "name=${{ inputs.CONTAINERNAME }}") {
+          docker rm -f ${{ inputs.CONTAINERNAME }}
+        }
         docker system prune -af
         Write-Host "✅ Cleanup completed."
