@@ -61,8 +61,12 @@ runs:
             -containerName $containerName `
             -auth NavUserPassword `
             -credential $credential `
+            -includeTestToolkit `
+            -includePerformanceToolkit `
             -memoryLimit 16G `
             -accept_outdated `
             -useBestContainerOS $true `
+            -vsixFile (Get-LatestAlLanguageExtensionUrl) `
+            -updateHosts
             -additionalParameters $AdditionalParameters 
         }
