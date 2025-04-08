@@ -49,14 +49,21 @@ runs:
             Start-BcContainer -containerName $containerName
         }
         catch {
-            $artifactUrl = Get-BCArtifactUrl -country w1 -select Latest -storageAccount bcartifacts -type Sandbox
+            $artifactUrl = Get-BCArtifactUrl -country GB -select Latest -storageAccount bcartifacts -type Sandbox
 
             $AdditionalParameters = @()
             $AdditionalParameters += '--volume "{0}:{1}"' -f $RepositoryDirectory, 'c:\sources'
 
             Write-Host "Container not found. Creating a new container..."
-            $artifactUrl = Get-BCArtifactUrl -country w1 -select Latest -storageAccount bcartifacts -type Sandbox
-            New-BcContainer -accept_eula -artifactUrl $artifactUrl -containerName $containerName -auth NavUserPassword `
-                -credential $credential -isolation process -memoryLimit 8GB -accept_outdated -useBestContainerOS $true `
-                -additionalParameters $AdditionalParameters 
+            $artifactUrl = Get-BCArtifactUrl -country GB -select Latest -storageAccount bcartifacts -type Sandbox
+            New-BcContainer -accept_eula `
+            -artifactUrl $artifactUrl `
+            -containerName $containerName `
+            -auth NavUserPassword `
+            -credential $credential `
+            -isolation process 
+            -memoryLimit 16G `
+            -accept_outdated `
+            -useBestContainerOS $true `
+            -additionalParameters $AdditionalParameters 
         }
