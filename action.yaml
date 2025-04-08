@@ -61,7 +61,6 @@ runs:
             -containerName $containerName `
             -auth NavUserPassword `
             -credential $credential `
-            -isolation process 
             -memoryLimit 16G `
             -accept_outdated `
             -useBestContainerOS $true `
