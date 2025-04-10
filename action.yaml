@@ -67,6 +67,6 @@ runs:
             -accept_outdated `
             -useBestContainerOS $true `
             -vsixFile (Get-LatestAlLanguageExtensionUrl) `
-            -updateHosts
+            -updateHosts `
             -additionalParameters $AdditionalParameters 
         }
